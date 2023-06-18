@@ -1,0 +1,41 @@
+version: "3"
+services:
+  react-app:
+    image: react-app
+    build: ./client/
+    env_file: ./.env
+    stdin_open: true
+    ports: 
+      - "3000:3000"
+    networks:
+      - devit-test
+    volumes:
+      - ./client/:/usr/src/app
+      - /usr/src/app/node_modules
+  api-server:
+    image: api-server
+    build: ./server/
+    env_file: ./.env
+    ports:
+      - "5000:5000"
+    networks:
+      - devit-test
+    volumes:
+      - ./server/:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - devit-test
+    volumes:
+      - mongo-data:/data/db
+networks:
+  devit-test:
+    driver: bridge
+volumes:
+  mongo-data:
+    driver: local
