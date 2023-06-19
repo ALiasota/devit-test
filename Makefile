@@ -1,5 +1,3 @@
-### DEV
-
 build:
 	cd client && $(MAKE) build
 	cd server && $(MAKE) build
