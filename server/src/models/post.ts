@@ -3,7 +3,7 @@ import { IPost } from 'types/post'
 
 const postSchema = new Schema<IPost>(
   {
-    creator: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'users'
     },
