@@ -1,4 +1,5 @@
 import Post from 'models/post'
+import { ObjectId } from 'mongodb'
 
 interface IGetPosts {
   search?: string
@@ -7,24 +8,52 @@ interface IGetPosts {
   sort?: string
 }
 
-export class PostService {
-  static rssPosts: any
+interface IPost {
+  _id?: typeof ObjectId
+  title: string
+  content: string
+  creator: string
+  createdAt: Date | string
+}
 
-  static async setPosts(newPosts: any) {
-    this.rssPosts = newPosts
+export class PostService {
+  static rssResponse: any
+
+  static async setRssPosts(newPosts: any) {
+    this.rssResponse = newPosts
   }
 
-  static async getPosts({ search, skip, limit, sort }: IGetPosts) {
-    let model = null
-    console.log(typeof search)
-    if (!search) {
-      model = { title: { $regex: search, $options: 'i' } }
+  static async getPosts({ search, skip = 0, limit = 10, sort }: IGetPosts) {
+    console.log({ search, skip, limit, sort })
+    let allPosts: IPost[] = []
+    // let finallyPosts: IPost[] = []
+    let totalCount = 0
+    const rssPosts: IPost[] =
+      this.rssResponse && this.rssResponse.items
+        ? this.rssResponse.items.map((item: any) => ({
+            title: item.title,
+            content: item.content,
+            creator: item.creator,
+            createdAt: new Date(item.isoDate)
+          }))
+        : []
+
+    const postsDB = await this.getPostsDB({ search, skip, limit, sort })
+    if (!postsDB) {
+      allPosts = rssPosts
     } else {
-      model = {}
+      allPosts = [...postsDB.posts, ...rssPosts]
     }
-    console.log(model)
+    if (search) allPosts = allPosts.filter(post => post.title.includes(search))
+    if (sort === 'title') allPosts.sort((a, b) => (a.title > b.title ? 1 : -1))
+    totalCount = allPosts.length
+    allPosts = allPosts.slice(skip, skip + limit)
+    return { allPosts, totalCount }
+  }
+
+  static async getPostsDB({ search, skip, limit, sort }: IGetPosts) {
     const result = await Post.aggregate([
-      { $match: model },
+      { $match: search ? { title: { $regex: search, $options: 'i' } } : {} },
       {
         $facet: {
           stage1: [{ $group: { _id: null, count: { $sum: 1 } } }],
@@ -34,13 +63,14 @@ export class PostService {
             { $limit: limit ? limit : 10 },
             { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'userData' } },
             { $unwind: '$userData' },
-            { $addFields: { name: '$userData.name' } },
+            { $addFields: { creator: '$userData.name' } },
             {
               $project: {
                 title: 1,
                 content: 1,
                 _id: 1,
-                name: 1
+                creator: 1,
+                createdAt: 1
               }
             }
           ]
@@ -50,11 +80,11 @@ export class PostService {
       {
         $project: {
           totalCount: '$stage1.count',
-          loans: '$stage2'
+          posts: '$stage2'
         }
       }
     ])
-    console.log(result)
+    console.log(result[0])
     return result[0]
   }
 

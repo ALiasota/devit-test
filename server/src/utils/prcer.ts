@@ -8,7 +8,7 @@ let posts = null
 async function parseRSSFeed() {
   try {
     posts = await parser.parseURL(process.env.RSS_URL as string)
-    PostService.setPosts(posts)
+    PostService.setRssPosts(posts)
   } catch (error) {
     console.error('Error parsing RSS feed:', error)
   }

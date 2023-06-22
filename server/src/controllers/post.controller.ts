@@ -5,10 +5,10 @@ import { Request, Response } from 'express'
 export const getAllPosts = async (req: Request) => {
   const { search, skip, limit, sort } = req.query
   const posts = await PostService.getPosts({
-    search: String(search),
-    skip: Number(skip),
-    limit: Number(limit),
-    sort: String(sort)
+    search: search ? String(search) : undefined,
+    skip: skip ? Number(skip) : undefined,
+    limit: limit ? Number(limit) : undefined,
+    sort: sort ? String(sort) : undefined
   })
   return posts
 }
